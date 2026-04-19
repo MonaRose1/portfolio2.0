@@ -1,37 +1,40 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
-export function useTypewriter(words: string[], typingSpeed = 80, deletingSpeed = 45, pauseMs = 1800) {
+export function useTypewriter(words: string[], typingSpeed = 80, deletingSpeed = 35, pauseMs = 2000) {
   const [displayText, setDisplayText] = useState('');
   const [wordIndex, setWordIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     const currentWord = words[wordIndex % words.length];
 
-    const tick = () => {
+    const timer = setTimeout(() => {
       if (!isDeleting) {
-        setDisplayText(currentWord.slice(0, displayText.length + 1));
-        if (displayText.length + 1 === currentWord.length) {
-          timeoutRef.current = setTimeout(() => setIsDeleting(true), pauseMs);
-          return;
+        // Typing phase
+        const nextText = currentWord.slice(0, displayText.length + 1);
+        setDisplayText(nextText);
+
+        if (nextText === currentWord) {
+          setIsDeleting(true);
         }
-        timeoutRef.current = setTimeout(tick, typingSpeed);
       } else {
-        setDisplayText(currentWord.slice(0, displayText.length - 1));
-        if (displayText.length - 1 === 0) {
+        // Deleting phase
+        const nextText = currentWord.slice(0, displayText.length - 1);
+        setDisplayText(nextText);
+
+        if (nextText === '') {
           setIsDeleting(false);
-          setWordIndex((i) => i + 1);
-          return;
+          setWordIndex((prev) => prev + 1);
         }
-        timeoutRef.current = setTimeout(tick, deletingSpeed);
       }
-    };
+    }, isDeleting 
+        ? (displayText === currentWord ? pauseMs : deletingSpeed) 
+        : typingSpeed
+    );
 
-    timeoutRef.current = setTimeout(tick, isDeleting ? deletingSpeed : typingSpeed);
-
-    return () => clearTimeout(timeoutRef.current);
+    return () => clearTimeout(timer);
   }, [displayText, isDeleting, wordIndex, words, typingSpeed, deletingSpeed, pauseMs]);
 
   return displayText;
 }
+
